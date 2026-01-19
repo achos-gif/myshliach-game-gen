@@ -72,7 +72,9 @@ export interface LiveSessionState {
   currentQuestionIndex: number;
   players: Record<string, { score: number; name: string }>;
   hostId: string;
-  gameData?: GameData; // Added this field
+  gameData?: GameData;
+  sharedAnswer?: string | null; // For cooperative/mirrored play
+  answerFeedback?: boolean | null; // true=correct, false=wrong, null=none
 }
 
 export const createLiveSession = async (gameData: GameData, hostName: string): Promise<string> => {
@@ -83,9 +85,11 @@ export const createLiveSession = async (gameData: GameData, hostName: string): P
     gameData,
     status: 'waiting',
     currentQuestionIndex: 0,
-    hostId: Math.random().toString(36).substring(2), // Simple host ID
+    hostId: Math.random().toString(36).substring(2),
     players: {},
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    sharedAnswer: null,
+    answerFeedback: null
   }));
 
   return sessionId;
