@@ -245,30 +245,87 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
     GameType.FIND_MATCH
   ];
 
-  if (session.status === 'active' && independentGames.includes(gameData.type)) {
-     // Handler for synced board state (Crossword)
-     const handleBoardUpdate = (key: string, val: any) => {
-        updateBoardState(sessionId, { [key]: val });
+  // Cooperative games that are NOT question-based (like Crossword, Unscramble)
+  if (session.status === 'active' && 
+      (gameData.type === GameType.CROSSWORD || gameData.type === GameType.UNSCRAMBLE)) {
+     const handleBoardUpdate = (updates: any) => {
+        updateBoardState(sessionId, updates);
      };
 
-     const renderIndependentGame = () => {
+     const renderCooperativeGame = () => {
         switch (gameData.type) {
             case GameType.CROSSWORD: 
               return <CrosswordGame 
                 data={gameData} 
                 onReset={() => {}} 
                 externalInputs={session.boardState || {}}
-                onCellChange={handleBoardUpdate}
+                onCellChange={(key, val) => handleBoardUpdate({[key]: val})}
               />;
+            case GameType.UNSCRAMBLE:
+              return <UnscrambleGame 
+                data={gameData} 
+                onReset={() => {}} 
+                externalState={session.boardState as any || { currentIndex: 0, completedCount: 0, currentGuess: [], availableLetters: [] }}
+                onStateChange={handleBoardUpdate}
+              />;
+            default: return <div>Game not supported in Live Mode yet.</div>;
+        }
+     };
+
+     return (
+       <div className="max-w-6xl mx-auto">
+         {isHost && (
+           <div className="bg-cyan-50 p-4 rounded-xl mb-4 border border-cyan-200 text-cyan-800 text-center sticky top-4 z-50 shadow-md mx-4">
+             <p className="font-bold text-lg">Host Control Panel</p>
+             <p className="text-sm mb-2">You are solving this puzzle together with your student!</p>
+             { gameData.type === GameType.UNSCRAMBLE && (
+                <Button onClick={
+                    () => {
+                        const currentItem = items[session.boardState.currentIndex];
+                        if(session.boardState.currentGuess.join('') === currentItem.original.toUpperCase()){
+                            // This is a bit of a hack, we need a better way to trigger next level
+                            // For now, let's just do it
+                            const newIndex = session.boardState.currentIndex + 1;
+                            if(newIndex < items.length){
+                                const nextItem = items[newIndex];
+                                 updateBoardState(sessionId, {
+                                    currentIndex: newIndex,
+                                    completedCount: session.boardState.completedCount + 1,
+                                    currentGuess: [],
+                                    availableLetters: nextItem.original.toUpperCase().split('').map((c, i) => ({char: c, id: i}))
+                                });
+                            } else {
+                                updateSessionState(sessionId, { status: 'finished' });
+                            }
+                        }
+                    }
+                } size="sm" className="mt-1">
+                  Next Word
+                </Button>
+             )}
+             <Button onClick={async () => await updateSessionState(sessionId, { status: 'finished' })} className="mt-1">
+               End Session
+             </Button>
+           </div>
+         )}
+         <div className="pointer-events-auto">
+            {renderCooperativeGame()}
+         </div>
+       </div>
+     );
+  }
+
+  // Handle Independent Play games
+  if (session.status === 'active' && independentGames.includes(gameData.type)) {
+     const renderIndependentGame = () => {
+        switch (gameData.type) {
             case GameType.WORD_SEARCH: return <WordSearchGame data={gameData} onReset={() => {}} />;
             case GameType.MATCHING: return <MatchingGame data={gameData} onReset={() => {}} />;
             case GameType.MEMORY: return <MemoryGame data={gameData} onReset={() => {}} />;
             case GameType.SEQUENCE: return <SequenceGame data={gameData} onReset={() => {}} />;
             case GameType.SORTING: return <SortingGame data={gameData} onReset={() => {}} />;
-            case GameType.UNSCRAMBLE: return <UnscrambleGame data={gameData} onReset={() => {}} />;
             case GameType.FILL_IN_BLANK: return <FillBlankGame data={gameData} onReset={() => {}} />;
             case GameType.RIDDLE: return <RiddleGame data={gameData} onReset={() => {}} />;
-            case GameType.CROSSWORD: return <CrosswordGame data={gameData} onReset={() => {}} />;
             case GameType.EMOJI_CHALLENGE: return <EmojiGame data={gameData} onReset={() => {}} />;
             case GameType.TRIVIA_TRAIL: return <TriviaTrailGame data={gameData} onReset={() => {}} />;
             case GameType.FIND_MATCH: return <FindMatchGame data={gameData} onReset={() => {}} />;

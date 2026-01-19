@@ -1,78 +1,125 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameData, UnscrambleItem } from '../../types';
 import { Button } from '../Button';
 import { CheckCircle, RotateCcw, Lightbulb } from 'lucide-react';
+import isEqual from 'lodash.isequal';
 
 interface UnscrambleGameProps {
   data: GameData;
   onReset: () => void;
+  // Live Mode Props
+  externalState?: {
+    currentIndex: number;
+    completedCount: number;
+    currentGuess?: string[];
+    availableLetters?: { char: string, id: number }[];
+  };
+  onStateChange?: (newState: Partial<UnscrambleGameProps['externalState']>) => void;
 }
 
-export const UnscrambleGame: React.FC<UnscrambleGameProps> = ({ data, onReset }) => {
+export const UnscrambleGame: React.FC<UnscrambleGameProps> = ({ 
+  data, 
+  onReset,
+  externalState,
+  onStateChange
+}) => {
   const [items, setItems] = useState<UnscrambleItem[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentGuess, setCurrentGuess] = useState<string[]>([]);
-  const [availableLetters, setAvailableLetters] = useState<{char: string, id: number}[]>([]);
+  
+  // Local state for single player mode
+  const [localState, setLocalState] = useState({
+    currentIndex: 0,
+    completedCount: 0,
+    currentGuess: [] as string[],
+    availableLetters: [] as { char: string, id: number }[],
+  });
+  
+  // Use external state if provided (live mode), otherwise use local state
+  const gameState = externalState || localState;
+  const setState = onStateChange || ((newState) => {
+    setLocalState(prev => ({ ...prev, ...newState }));
+  });
+
   const [showHint, setShowHint] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
-    if (data.unscrambleContent) {
+    if (data.unscrambleContent && items.length === 0) {
       setItems(data.unscrambleContent);
-      setupLevel(data.unscrambleContent[0]);
+      setupLevel(data.unscrambleContent[0], 0);
     }
   }, [data]);
+  
+  // Sync state if external state changes
+  useEffect(() => {
+    if (externalState && !isEqual(externalState, localState)) {
+      setLocalState(externalState);
+    }
+  }, [externalState]);
 
-  const setupLevel = (item: UnscrambleItem) => {
+  const setupLevel = (item: UnscrambleItem, index: number) => {
+    // Shuffle deterministically in live mode to avoid sync issues.
+    // In local mode, random is fine.
     const letters = item.original.toUpperCase().split('').map((char, i) => ({
       char,
       id: i
-    })).sort(() => Math.random() - 0.5);
+    }));
+
+    if (!onStateChange) {
+      letters.sort(() => Math.random() - 0.5);
+    }
     
-    setAvailableLetters(letters);
-    setCurrentGuess([]);
+    setState({
+      currentIndex: index,
+      completedCount: gameState.completedCount,
+      availableLetters: letters,
+      currentGuess: [],
+    });
     setIsCorrect(false);
     setShowHint(false);
   };
 
   const handleLetterClick = (char: string, id: number) => {
-    // Move from available to guess
-    setCurrentGuess(prev => [...prev, char]);
-    setAvailableLetters(prev => prev.filter(l => l.id !== id));
+    const newGuess = [...gameState.currentGuess, char];
+    const newAvailable = gameState.availableLetters.filter(l => l.id !== id);
+    setState({ currentGuess: newGuess, availableLetters: newAvailable });
   };
 
   const handleGuessClick = (index: number, char: string) => {
-    // Move back from guess to available
-    // We need to recreate the id, but since we just need uniqueness for the list, we can find it back or generate new logic. 
-    // To simplify, let's just use a timestamp or random id, or better, store the original ID in guess too.
-    // For this simple version, let's just push it back to available with a random ID.
-    setAvailableLetters(prev => [...prev, { char, id: Math.random() }]);
-    setCurrentGuess(prev => prev.filter((_, i) => i !== index));
+    const letterToReturn = gameState.currentGuess[index];
+    const originalId = items[gameState.currentIndex].original.toUpperCase().split('').indexOf(letterToReturn, index);
+    
+    const newAvailable = [...gameState.availableLetters, { char, id: Math.random() }];
+    const newGuess = gameState.currentGuess.filter((_, i) => i !== index);
+    setState({ currentGuess: newGuess, availableLetters: newAvailable });
   };
 
   const checkAnswer = () => {
-    const guessWord = currentGuess.join('');
-    if (guessWord === items[currentIndex].original.toUpperCase()) {
+    const guessWord = gameState.currentGuess.join('');
+    if (guessWord === items[gameState.currentIndex].original.toUpperCase()) {
       setIsCorrect(true);
+      // In live mode, state change will trigger for others. In local, we can do it here.
+      if (!onStateChange) {
+         setTimeout(nextLevel, 1000);
+      }
     } else {
-      // Shake animation or error could go here
+      alert("Not quite right. Try again!");
     }
   };
 
   const nextLevel = () => {
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setupLevel(items[currentIndex + 1]);
-      setCompletedCount(prev => prev + 1);
+    const newIndex = gameState.currentIndex + 1;
+    const newCompleted = isCorrect ? gameState.completedCount + 1 : gameState.completedCount;
+
+    if (newIndex < items.length) {
+      setupLevel(items[newIndex], newIndex);
+      setState({ completedCount: newCompleted, currentIndex: newIndex });
     } else {
-      setCompletedCount(prev => prev + 1);
-      // End game state handled in render
+      setState({ completedCount: newCompleted });
+      // End game
     }
   };
 
-  if (completedCount === items.length && items.length > 0) {
+  if (gameState.completedCount === items.length && items.length > 0) {
      return (
        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-2xl mx-auto animate-fade-in-up">
         <h2 className="text-4xl font-bold text-indigo-600 mb-4">Vocabulary Master!</h2>
@@ -85,7 +132,7 @@ export const UnscrambleGame: React.FC<UnscrambleGameProps> = ({ data, onReset })
     );
   }
 
-  const currentItem = items[currentIndex];
+  const currentItem = items[gameState.currentIndex];
   if (!currentItem) return null;
 
   return (
@@ -93,7 +140,7 @@ export const UnscrambleGame: React.FC<UnscrambleGameProps> = ({ data, onReset })
       
       {/* Progress */}
       <div className="mb-8 text-gray-400 font-bold uppercase tracking-widest text-sm">
-        Word {currentIndex + 1} of {items.length}
+        Word {gameState.currentIndex + 1} of {items.length}
       </div>
 
       {/* Hint Button */}
@@ -114,61 +161,34 @@ export const UnscrambleGame: React.FC<UnscrambleGameProps> = ({ data, onReset })
       </div>
 
       {/* Guess Area (Slots) */}
-      <div className="flex flex-wrap justify-center gap-2 mb-12 min-h-[80px]">
-        {Array.from({ length: currentItem.original.length }).map((_, i) => {
-          const char = currentGuess[i];
-          return (
-            <button
-              key={i}
-              onClick={() => char && !isCorrect ? handleGuessClick(i, char) : null}
-              disabled={isCorrect}
-              className={`
-                w-12 h-14 md:w-16 md:h-20 rounded-xl border-b-4 text-2xl md:text-4xl font-bold flex items-center justify-center transition-all
-                ${char 
-                  ? isCorrect 
-                    ? 'bg-green-500 border-green-700 text-white' 
-                    : 'bg-indigo-600 border-indigo-800 text-white' 
-                  : 'bg-slate-100 border-slate-300'}
-              `}
-            >
-              {char}
-            </button>
-          );
-        })}
+      <div className="bg-white rounded-2xl shadow-lg p-6 min-h-[150px] flex items-center justify-center flex-wrap gap-3 border-4 border-slate-200">
+        {gameState.currentGuess.map((char, i) => (
+          <button key={i} onClick={() => handleGuessClick(i, char)} className="w-12 h-16 bg-indigo-500 text-white font-bold text-2xl rounded-lg shadow-md flex items-center justify-center">
+            {char}
+          </button>
+        ))}
+        {gameState.currentGuess.length === 0 && <span className="text-gray-400">Click letters below</span>}
       </div>
 
       {/* Available Letters */}
-      {!isCorrect && (
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
-          {availableLetters.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => handleLetterClick(l.char, l.id)}
-              className="w-12 h-14 md:w-14 md:h-16 bg-white border-2 border-slate-200 border-b-4 rounded-xl text-xl md:text-2xl font-bold text-gray-700 hover:-translate-y-1 active:border-b-2 active:translate-y-1 transition-all"
-            >
-              {l.char}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Controls */}
-      <div className="flex justify-center gap-4 h-16">
-        {isCorrect ? (
-          <Button onClick={nextLevel} className="animate-bounce-in">
-            Next Word
-          </Button>
-        ) : (
-          <Button 
-            onClick={checkAnswer} 
-            disabled={currentGuess.length !== currentItem.original.length}
-            variant="secondary"
-          >
-            Check Answer
-          </Button>
-        )}
+      <div className="mt-8 p-4 min-h-[100px] flex items-center justify-center flex-wrap gap-3">
+        {gameState.availableLetters.map(({char, id}) => (
+          <button key={id} onClick={() => handleLetterClick(char, id)} className="w-12 h-16 bg-slate-200 text-slate-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center hover:bg-slate-300 transition-transform hover:scale-110">
+            {char}
+          </button>
+        ))}
       </div>
 
+      {/* Action Buttons */}
+      <div className="mt-8">
+        {isCorrect ? (
+          <Button onClick={onStateChange ? () => {} : nextLevel} disabled={!!onStateChange} className="bg-green-500 hover:bg-green-600">
+            Correct! Waiting for host... <CheckCircle className="ml-2" />
+          </Button>
+        ) : (
+          <Button onClick={checkAnswer}>Check Answer</Button>
+        )}
+      </div>
     </div>
   );
 };
