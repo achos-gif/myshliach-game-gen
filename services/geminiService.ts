@@ -8,7 +8,14 @@ import { GEMINI_MODEL } from "../constants";
  */
 export async function generateGameFromContent(input: GameGenerationInput, type: GameType): Promise<GameData> {
   // Always create a fresh instance to ensure we pick up the latest API key injected by the platform bridge
-  const apiKey = process.env.API_KEY;
+  // Check multiple sources for the API key to ensure compatibility with various environments
+  let apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  
+  // Runtime fallback for browser environments where env vars might be injected into window
+  if (!apiKey && typeof window !== 'undefined') {
+    const win = window as any;
+    apiKey = win.GEMINI_API_KEY || win.API_KEY || (win.process && win.process.env && win.process.env.API_KEY);
+  }
   
   if (!apiKey) {
     throw new Error("No API key detected. Please click the setup button to connect your key.");
