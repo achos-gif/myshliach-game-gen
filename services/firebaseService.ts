@@ -107,7 +107,7 @@ export const updateSessionState = async (sessionId: string, updates: Partial<Liv
   await updateDoc(sessionRef, updates);
 };
 
-export const joinSession = async (sessionId: string, playerName: string) => {
+export const joinSession = async (sessionId: string, playerName: string): Promise<string> => {
   const sessionRef = doc(db, "sessions", sessionId);
   const playerId = Math.random().toString(36).substring(2);
   
@@ -117,5 +117,14 @@ export const joinSession = async (sessionId: string, playerName: string) => {
       name: playerName,
       score: 0
     }
+  });
+
+  return playerId;
+};
+
+export const updatePlayerScore = async (sessionId: string, playerId: string, newScore: number) => {
+  const sessionRef = doc(db, "sessions", sessionId);
+  await updateDoc(sessionRef, {
+    [`players.${playerId}.score`]: newScore
   });
 };

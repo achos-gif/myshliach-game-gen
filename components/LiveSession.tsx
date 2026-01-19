@@ -4,10 +4,11 @@ import {
   subscribeToSession, 
   joinSession, 
   updateSessionState, 
+  updatePlayerScore,
   LiveSessionState 
 } from '../services/firebaseService';
 import { Button } from './Button';
-import { Loader2, Users, Play, Trophy, ArrowRight, Copy } from 'lucide-react';
+import { Loader2, Users, Play, Trophy, ArrowRight, Copy, CheckCircle, XCircle } from 'lucide-react';
 import { QuizGame } from './games/QuizGame';
 
 interface LiveSessionProps {
@@ -26,17 +27,29 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   const [session, setSession] = useState<LiveSessionState | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [hasJoined, setHasJoined] = useState(isHost); // Host is implicitly joined
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Gameplay state
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [score, setScore] = useState(0);
 
   // Subscribe to session updates
   useEffect(() => {
     const unsubscribe = subscribeToSession(sessionId, (data) => {
       setSession(data as LiveSessionState);
       setLoading(false);
+      
+      // Reset selection when question changes
+      if (data && data.currentQuestionIndex !== session?.currentQuestionIndex) {
+        setSelectedOption(null);
+        setIsCorrect(null);
+      }
     });
     return () => unsubscribe();
-  }, [sessionId]);
+  }, [sessionId, session?.currentQuestionIndex]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +57,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
     
     setLoading(true);
     try {
-      await joinSession(sessionId, playerName);
+      const pid = await joinSession(sessionId, playerName);
+      setPlayerId(pid);
       setHasJoined(true);
     } catch (err) {
       console.error(err);
@@ -69,6 +83,20 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
       await updateSessionState(sessionId, { status: 'finished' });
     } else {
       await updateSessionState(sessionId, { currentQuestionIndex: nextIndex });
+    }
+  };
+
+  const handleAnswer = async (option: string, correctAnswer: string) => {
+    if (isHost || selectedOption) return; // Prevent multiple answers or host answering
+
+    setSelectedOption(option);
+    const correct = option === correctAnswer;
+    setIsCorrect(correct);
+
+    if (correct && playerId) {
+      const newScore = score + 1;
+      setScore(newScore);
+      await updatePlayerScore(sessionId, playerId, newScore);
     }
   };
 
@@ -194,21 +222,29 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
           <h2 className="text-2xl font-bold text-gray-800 mb-8">{currentQ.question}</h2>
           
           <div className="grid gap-4">
-            {currentQ.options.map((opt: string, i: number) => (
-              <button
-                key={i}
-                className={`w-full p-4 text-left rounded-xl border-2 transition-all font-semibold
-                  ${false // We'd need local state to track selection
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
-                    : 'border-gray-200 hover:border-indigo-200 hover:bg-slate-50 text-gray-700'}
-                `}
-                onClick={() => {
-                   // Handle answer submission here (update player score in firebase)
-                }}
-              >
-                {opt}
-              </button>
-            ))}
+            {currentQ.options.map((opt: string, i: number) => {
+              const isSelected = selectedOption === opt;
+              const isCorrectAnswer = opt === currentQ.correctAnswer;
+              
+              let btnClass = "border-gray-200 hover:border-indigo-200 hover:bg-slate-50 text-gray-700";
+              if (isSelected) {
+                btnClass = isCorrect ? "border-green-500 bg-green-50 text-green-700" : "border-red-500 bg-red-50 text-red-700";
+              } else if (selectedOption && isCorrectAnswer) {
+                btnClass = "border-green-500 bg-green-50 text-green-700"; // Show correct answer after choice
+              }
+
+              return (
+                <button
+                  key={i}
+                  disabled={!!selectedOption || isHost}
+                  className={`w-full p-4 text-left rounded-xl border-2 transition-all font-semibold flex justify-between items-center ${btnClass}`}
+                  onClick={() => handleAnswer(opt, currentQ.correctAnswer)}
+                >
+                  <span>{opt}</span>
+                  {isSelected && (isCorrect ? <CheckCircle size={20} /> : <XCircle size={20} />)}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
