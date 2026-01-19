@@ -75,7 +75,26 @@ export interface LiveSessionState {
   gameData?: GameData;
   sharedAnswer?: string | null; // For cooperative/mirrored play
   answerFeedback?: boolean | null; // true=correct, false=wrong, null=none
+  boardState?: Record<string, any>; // Generic state for board games (Crossword inputs, etc.)
 }
+
+// ...existing code...
+
+export const updateBoardState = async (sessionId: string, updates: Record<string, any>) => {
+  const sessionRef = doc(db, "sessions", sessionId);
+  // We use "merge" strategy logic by sending specific fields if we were using dot notation
+  // But here we might want to update the whole boardState object map or specific keys
+  // For simplicity, let's assume we pass the FULL new state or we use dot notation for keys
+  
+  // Actually, for a crossword, we want to update specific cells without overwriting others
+  // updates object should look like { "boardState.0-1": "A", "boardState.2-3": "B" }
+  const firebaseUpdates: Record<string, any> = {};
+  Object.keys(updates).forEach(key => {
+    firebaseUpdates[`boardState.${key}`] = updates[key];
+  });
+  
+  await updateDoc(sessionRef, firebaseUpdates);
+};
 
 export const createLiveSession = async (gameData: GameData, hostName: string): Promise<string> => {
   const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();

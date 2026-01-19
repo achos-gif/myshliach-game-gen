@@ -5,6 +5,7 @@ import {
   joinSession, 
   updateSessionState, 
   updatePlayerScore,
+  updateBoardState, // Added import
   LiveSessionState 
 } from '../services/firebaseService';
 import { Button } from './Button';
@@ -229,7 +230,6 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
   // Handle Games played independently (Board Games)
   // For these games, we show the game component directly.
-  // The host sees a control panel to end the game.
   const independentGames = [
     GameType.WORD_SEARCH,
     GameType.MATCHING,
@@ -246,8 +246,20 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   ];
 
   if (session.status === 'active' && independentGames.includes(gameData.type)) {
+     // Handler for synced board state (Crossword)
+     const handleBoardUpdate = (key: string, val: any) => {
+        updateBoardState(sessionId, { [key]: val });
+     };
+
      const renderIndependentGame = () => {
         switch (gameData.type) {
+            case GameType.CROSSWORD: 
+              return <CrosswordGame 
+                data={gameData} 
+                onReset={() => {}} 
+                externalInputs={session.boardState || {}}
+                onCellChange={handleBoardUpdate}
+              />;
             case GameType.WORD_SEARCH: return <WordSearchGame data={gameData} onReset={() => {}} />;
             case GameType.MATCHING: return <MatchingGame data={gameData} onReset={() => {}} />;
             case GameType.MEMORY: return <MemoryGame data={gameData} onReset={() => {}} />;
@@ -269,7 +281,11 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
          {isHost && (
            <div className="bg-yellow-50 p-4 rounded-xl mb-4 border border-yellow-200 text-yellow-800 text-center sticky top-4 z-50 shadow-md mx-4">
              <p className="font-bold text-lg">Host Control Panel</p>
-             <p className="text-sm mb-2">Students are playing independently on their devices.</p>
+             <p className="text-sm mb-2">
+               {gameData.type === GameType.CROSSWORD 
+                 ? "Students are solving the Crossword together!" 
+                 : "Students are playing independently on their devices."}
+             </p>
              <Button onClick={async () => await updateSessionState(sessionId, { status: 'finished' })} className="mt-1">
                End Session
              </Button>

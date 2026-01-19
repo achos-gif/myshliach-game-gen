@@ -7,6 +7,9 @@ import { RotateCcw, CheckCircle } from 'lucide-react';
 interface CrosswordGameProps {
   data: GameData;
   onReset: () => void;
+  // Live Mode Props
+  externalInputs?: Record<string, string>;
+  onCellChange?: (key: string, val: string) => void;
 }
 
 interface Cell {
@@ -20,22 +23,30 @@ interface Cell {
   }[];
 }
 
-export const CrosswordGame: React.FC<CrosswordGameProps> = ({ data, onReset }) => {
+export const CrosswordGame: React.FC<CrosswordGameProps> = ({ 
+  data, 
+  onReset,
+  externalInputs,
+  onCellChange
+}) => {
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [items, setItems] = useState<CrosswordItem[]>([]);
-  const [userInputs, setUserInputs] = useState<Record<string, string>>({});
+  const [localInputs, setLocalInputs] = useState<Record<string, string>>({});
   const [selectedWord, setSelectedWord] = useState<number | null>(null);
   const [isSolved, setIsSolved] = useState(false);
   const [dimensions, setDimensions] = useState({ rows: 10, cols: 10 });
 
+  // Use external inputs if provided, otherwise local
+  const userInputs = externalInputs || localInputs;
+
   useEffect(() => {
     if (data.crosswordContent) {
+      // ... existing layout logic ...
       const { grid: generatedGrid, placedItems, rows, cols } = generateCrosswordLayout(data.crosswordContent);
       setGrid(generatedGrid);
-      setItems(placedItems); // Only use items that fit
+      setItems(placedItems); 
       setDimensions({ rows, cols });
       
-      // Select first word
       if (placedItems.length > 0) setSelectedWord(0);
     }
   }, [data]);
@@ -43,10 +54,18 @@ export const CrosswordGame: React.FC<CrosswordGameProps> = ({ data, onReset }) =
   const handleInputChange = (r: number, c: number, val: string) => {
     if (val.length > 1) return;
     const key = `${r}-${c}`;
-    setUserInputs(prev => ({
+    const upperVal = val.toUpperCase();
+    
+    // Update Local
+    setLocalInputs(prev => ({
       ...prev,
-      [key]: val.toUpperCase()
+      [key]: upperVal
     }));
+
+    // Notify External (Live Mode)
+    if (onCellChange) {
+      onCellChange(key, upperVal);
+    }
   };
 
   const checkSolution = () => {
