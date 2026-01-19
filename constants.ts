@@ -1,5 +1,6 @@
 
 export const APP_TITLE = "MyShliach Game Gen";
+export const APP_VERSION = "1.1.0 (Compressed)";
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
 export const COLORS = {

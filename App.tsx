@@ -5,7 +5,7 @@ import { InputForm } from './components/InputForm';
 import { GameView } from './components/GameView';
 import { GameMenu } from './components/GameMenu';
 import { Loader2, AlertCircle, Key, ExternalLink } from 'lucide-react';
-import { APP_TITLE } from './constants';
+import { APP_TITLE, APP_VERSION } from './constants';
 import { Button } from './components/Button';
 import LZString from 'lz-string';
 
@@ -194,7 +194,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="text-center text-gray-400 text-sm py-8 print:hidden">
-        <p>&copy; {new Date().getFullYear()} MyShliach Mentor Program</p>
+        <p>&copy; {new Date().getFullYear()} MyShliach Mentor Program • v{APP_VERSION}</p>
       </footer>
     </div>
   );
