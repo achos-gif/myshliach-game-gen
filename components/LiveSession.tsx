@@ -394,8 +394,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
   if (session.status === 'active' && currentQ) {
     return (
-      <diRoleBadge />
-        <v className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto">
+        <RoleBadge />
         <div className="bg-white p-8 rounded-3xl shadow-xl mb-6">
           <div className="flex justify-between items-center mb-6">
             <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">
