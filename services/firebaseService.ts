@@ -17,17 +17,30 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Helper to enforce timeouts
+const withTimeout = <T>(promise: Promise<T>, ms: number = 5000): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Operation timed out - Check Internet or Firebase Config")), ms);
+    promise.then(
+      (res) => { clearTimeout(timer); resolve(res); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+};
+
 export const saveGameToDatabase = async (gameData: GameData): Promise<string> => {
   try {
+    console.log("Saving to Firebase...", firebaseConfig.projectId);
     // Generate a random 6-character ID for the URL
     const shortId = Math.random().toString(36).substring(2, 8);
     const gameRef = doc(db, "games", shortId);
     
-    await setDoc(gameRef, {
+    await withTimeout(setDoc(gameRef, {
       ...gameData,
       createdAt: new Date().toISOString()
-    });
+    }));
 
+    console.log("Saved successfully:", shortId);
     return shortId;
   } catch (error) {
     console.error("Error saving game to database:", error);
@@ -66,14 +79,14 @@ export const createLiveSession = async (gameData: GameData, hostName: string): P
   const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
   const sessionRef = doc(db, "sessions", sessionId);
   
-  await setDoc(sessionRef, {
+  await withTimeout(setDoc(sessionRef, {
     gameData,
     status: 'waiting',
     currentQuestionIndex: 0,
-    hostId: Math.random().toString(36).substring(2),
+    hostId: Math.random().toString(36).substring(2), // Simple host ID
     players: {},
     createdAt: new Date().toISOString()
-  });
+  }));
 
   return sessionId;
 };
