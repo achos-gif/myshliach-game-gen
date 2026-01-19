@@ -58,8 +58,8 @@ export interface LiveSessionState {
   status: 'waiting' | 'active' | 'finished';
   currentQuestionIndex: number;
   players: Record<string, { score: number; name: string }>;
-
   hostId: string;
+  gameData?: GameData; // Added this field
 }
 
 export const createLiveSession = async (gameData: GameData, hostName: string): Promise<string> => {
@@ -70,7 +70,7 @@ export const createLiveSession = async (gameData: GameData, hostName: string): P
     gameData,
     status: 'waiting',
     currentQuestionIndex: 0,
-    hostId: Math.random().toString(36).substring(2), // Simple host ID
+    hostId: Math.random().toString(36).substring(2),
     players: {},
     createdAt: new Date().toISOString()
   });
@@ -83,6 +83,8 @@ export const subscribeToSession = (sessionId: string, callback: (data: any) => v
   return onSnapshot(sessionRef, (doc) => {
     if (doc.exists()) {
       callback(doc.data());
+    } else {
+      callback(null); // Handle session closed/deleted
     }
   });
 };
@@ -96,8 +98,11 @@ export const joinSession = async (sessionId: string, playerName: string) => {
   const sessionRef = doc(db, "sessions", sessionId);
   const playerId = Math.random().toString(36).substring(2);
   
-  // Note: specific field updates like this usually require dot notation or map handling
-  // For simplicity in this demo, we'd fetch-modify-save or use updateDoc with dot notation
-  // We'll assume simple update for now
-  // In a real app, use arrayUnion or a subcollection for players to avoid race conditions
+  // Use dot notation to update a specific key in the map without overwriting
+  await updateDoc(sessionRef, {
+    [`players.${playerId}`]: {
+      name: playerName,
+      score: 0
+    }
+  });
 };

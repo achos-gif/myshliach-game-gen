@@ -8,9 +8,8 @@ import { Loader2, AlertCircle, Key, ExternalLink } from 'lucide-react';
 import { APP_TITLE, APP_VERSION } from './constants';
 import { Button } from './components/Button';
 import LZString from 'lz-string';
-import { getGameFromDatabase } from './services/firebaseService';
-
-import { getGameFromDatabase } from './services/firebaseService';
+import { getGameFromDatabase, createLiveSession } from './services/firebaseService';
+import { LiveSession } from './components/LiveSession';
 
 const App: React.FC = () => {
   const [state, setState] = useState<GameState>({
@@ -52,6 +51,19 @@ const App: React.FC = () => {
           console.error("Database load error:", e);
           setState(prev => ({ ...prev, view: 'MENU', error: "Failed to load shared game." }));
         }
+        return;
+      }
+
+      // Handle Live Session Links (#live=...)
+      if (hash.startsWith('#live=')) {
+        const sessionId = hash.replace('#live=', '');
+        // We don't have game data yet, the LiveSession component will fetch it via subscription
+        setState({ 
+          view: 'LIVE_LOBBY', 
+          data: null, 
+          liveSessionId: sessionId, 
+          isHost: false 
+        });
         return;
       }
 
@@ -127,6 +139,24 @@ const App: React.FC = () => {
       setState(prev => ({ ...prev, view: 'MENU', data: null }));
     } else {
       setState({ view: 'INPUT', data: null });
+    }
+  };
+
+  const handleStartLiveSession = async () => {
+    if (!state.data) return;
+    setState(prev => ({ ...prev, view: 'LOADING' }));
+    try {
+      // Create session in Firebase
+      const sessionId = await createLiveSession(state.data, "Host");
+      setState(prev => ({ 
+        ...prev, 
+        view: 'LIVE_LOBBY', 
+        liveSessionId: sessionId, 
+        isHost: true 
+      }));
+    } catch (e) {
+      console.error(e);
+      setState(prev => ({ ...prev, view: 'GAME', error: "Failed to start live session." }));
     }
   };
 
@@ -211,8 +241,20 @@ const App: React.FC = () => {
 
         {state.view === 'GAME' && state.data && (
           <div className="animate-fade-in">
-             <GameView data={state.data} onReset={handleBackToMenu} />
+             <GameView 
+                data={state.data} 
+                onReset={handleBackToMenu}
+                onStartLiveSession={handleStartLiveSession} 
+             />
           </div>
+        )}
+
+        {(state.view === 'LIVE_LOBBY' || state.view === 'LIVE_SESSION') && state.liveSessionId && (
+          <LiveSession
+            sessionId={state.liveSessionId}
+            isHost={!!state.isHost}
+            onExit={handleBackToMenu}
+          />
         )}
       </main>
 

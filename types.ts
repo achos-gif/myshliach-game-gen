@@ -107,8 +107,10 @@ export interface GameData {
 }
 
 export interface GameState {
-  view: 'INPUT' | 'MENU' | 'LOADING' | 'GAME' | 'ERROR';
+  view: 'INPUT' | 'MENU' | 'LOADING' | 'GAME' | 'ERROR' | 'LIVE_LOBBY' | 'LIVE_SESSION';
   inputData?: GameGenerationInput;
   data: GameData | null;
   error?: string;
+  liveSessionId?: string;
+  isHost?: boolean;
 }

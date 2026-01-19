@@ -13,17 +13,18 @@ import { CrosswordGame } from './games/CrosswordGame';
 import { EmojiGame } from './games/EmojiGame';
 import { TriviaTrailGame } from './games/TriviaTrailGame';
 import { FindMatchGame } from './games/FindMatchGame';
-import { Share2, User, CopyCheck, ArrowLeft, Printer, Loader2 } from 'lucide-react';
+import { Share2, User, CopyCheck, ArrowLeft, Printer, Loader2, Play } from 'lucide-react';
 import { Button } from './Button';
 import LZString from 'lz-string';
 import { saveGameToDatabase } from '../services/firebaseService';
 
 interface GameViewProps {
   data: GameData;
-  onReset: () => void; // This acts as "New Game" -> Back to Menu
+  onReset: () => void;
+  onStartLiveSession: () => void;
 }
 
-export const GameView: React.FC<GameViewProps> = ({ data, onReset }) => {
+export const GameView: React.FC<GameViewProps> = ({ data, onReset, onStartLiveSession }) => {
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
@@ -128,6 +129,10 @@ export const GameView: React.FC<GameViewProps> = ({ data, onReset }) => {
         <div className="flex gap-2 shrink-0">
           <Button onClick={onReset} variant="ghost" className="hidden md:flex">
              Change Game
+          </Button>
+          <Button onClick={onStartLiveSession} variant="secondary" title="Start Live Session">
+             <Play size={20} className="mr-2" /> 
+             <span className="hidden lg:inline">Live Mode</span>
           </Button>
           <Button onClick={handlePrint} variant="outline" title="Print Game">
              <Printer size={20} />
