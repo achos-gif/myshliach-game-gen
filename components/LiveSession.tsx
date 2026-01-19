@@ -227,6 +227,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
           </div>
         </div>
       </div>
+    );
+  }
   
   // Debug/Role Indicator
   const RoleBadge = () => (
@@ -234,8 +236,6 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
         {isHost ? "HOST" : `PLAYER: ${playerName || 'Guest'}`}
     </div>
   );
-    );
-  }
 
   // --- Active Game Screen ---
   // Note: For this MVP, we are reusing the QuizGame component logic but "controlled" via session state
