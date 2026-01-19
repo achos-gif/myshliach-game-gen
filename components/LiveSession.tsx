@@ -55,6 +55,16 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   // We now use session.sharedAnswer instead of local state for cooperative play
   const isCollaborative = true; // Defaulting to true as per request
 
+  // Reset local state when sessionId changes
+  useEffect(() => {
+    setSession(null);
+    setStudentJoined(false);
+    setPlayerName('');
+    setPlayerId(null);
+    setError(null);
+    setLoading(true);
+  }, [sessionId]);
+
   // Subscribe to session updates
   useEffect(() => {
     const unsubscribe = subscribeToSession(sessionId, (data) => {
@@ -217,6 +227,13 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
           </div>
         </div>
       </div>
+  
+  // Debug/Role Indicator
+  const RoleBadge = () => (
+    <div className="fixed top-20 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full shadow-sm text-xs font-bold text-gray-500 z-50 pointer-events-none">
+        {isHost ? "HOST" : `PLAYER: ${playerName || 'Guest'}`}
+    </div>
+  );
     );
   }
 
@@ -292,6 +309,7 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
      return (
        <div className="max-w-6xl mx-auto">
+         <RoleBadge />
          {isHost && (
            <div className="bg-cyan-50 p-4 rounded-xl mb-4 border border-cyan-200 text-cyan-800 text-center sticky top-4 z-50 shadow-md mx-4">
              <p className="font-bold text-lg">Host Control Panel</p>
@@ -353,6 +371,7 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
      return (
        <div className="max-w-6xl mx-auto">
+         <RoleBadge />
          {isHost && (
            <div className="bg-yellow-50 p-4 rounded-xl mb-4 border border-yellow-200 text-yellow-800 text-center sticky top-4 z-50 shadow-md mx-4">
              <p className="font-bold text-lg">Host Control Panel</p>
@@ -375,7 +394,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
   if (session.status === 'active' && currentQ) {
     return (
-      <div className="max-w-3xl mx-auto">
+      <diRoleBadge />
+        <v className="max-w-3xl mx-auto">
         <div className="bg-white p-8 rounded-3xl shadow-xl mb-6">
           <div className="flex justify-between items-center mb-6">
             <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">

@@ -58,6 +58,7 @@ const App: React.FC = () => {
       if (hash.startsWith('#live=')) {
         const sessionId = hash.replace('#live=', '');
         // We don't have game data yet, the LiveSession component will fetch it via subscription
+        // Explicitly set isHost to false to ensure no residual state
         setState({ 
           view: 'LIVE_LOBBY', 
           data: null, 
