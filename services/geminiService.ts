@@ -43,9 +43,10 @@ export async function generateGameFromContent(input: GameGenerationInput, type: 
       });
     }
 
-    let lastError: any;
-    // Retry up to 3 times for robustness
-    for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      let lastError: any;
+      // Retry up to 3 times for robustness
+      for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const response = await ai.models.generateContent({
           model: GEMINI_MODEL,
