@@ -10,6 +10,8 @@ import { Button } from './components/Button';
 import LZString from 'lz-string';
 import { getGameFromDatabase } from './services/firebaseService';
 
+import { getGameFromDatabase } from './services/firebaseService';
+
 const App: React.FC = () => {
   const [state, setState] = useState<GameState>({
     view: 'INPUT',
