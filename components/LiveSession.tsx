@@ -39,7 +39,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 }) => {
   const [session, setSession] = useState<LiveSessionState | null>(null);
   const [playerName, setPlayerName] = useState('');
-  const [hasJoined, setHasJoined] = useState(isHost); // Host is implicitly joined
+  // Force join screen for everyone except the original creator of the lobby
+  const [hasJoined, setHasJoined] = useState(isHost); 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
