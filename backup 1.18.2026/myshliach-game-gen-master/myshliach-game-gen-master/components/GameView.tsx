@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { GameData, GameType } from '../types';
 import { QuizGame } from './games/QuizGame';
@@ -15,7 +16,6 @@ import { TriviaTrailGame } from './games/TriviaTrailGame';
 import { FindMatchGame } from './games/FindMatchGame';
 import { Share2, User, CopyCheck, ArrowLeft, Printer } from 'lucide-react';
 import { Button } from './Button';
-import LZString from 'lz-string';
 
 interface GameViewProps {
   data: GameData;
@@ -28,10 +28,9 @@ export const GameView: React.FC<GameViewProps> = ({ data, onReset }) => {
   const handleShare = async () => {
     try {
       const jsonString = JSON.stringify(data);
-      // Use lz-string to compress the JSON data for a shorter URL
-      console.log("Compressing game data for share link...");
-      const compressed = LZString.compressToEncodedURIComponent(jsonString);
-      const url = `${window.location.origin}${window.location.pathname}#game=${compressed}`;
+      // Use standard encodeURIComponent before btoa to handle Unicode
+      const encoded = btoa(encodeURIComponent(jsonString));
+      const url = `${window.location.origin}${window.location.pathname}#game=${encoded}`;
       
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);

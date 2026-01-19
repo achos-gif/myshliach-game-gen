@@ -1,0 +1,5 @@
+{
+  "name": "MyShliach Koivetz Game Generator v good",
+  "description": "Automatically turns weekly Koivetz text into interactive, shareable games for mentors and students using Gemini AI.",
+  "requestFramePermissions": []
+}
