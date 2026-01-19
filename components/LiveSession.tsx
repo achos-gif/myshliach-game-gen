@@ -317,6 +317,8 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
              { gameData.type === GameType.UNSCRAMBLE && (
                 <Button onClick={
                     () => {
+                        const items = gameData.unscrambleContent;
+                        if (!items) return;
                         const currentItem = items[session.boardState.currentIndex];
                         if(session.boardState.currentGuess.join('') === currentItem.original.toUpperCase()){
                             // This is a bit of a hack, we need a better way to trigger next level
@@ -328,7 +330,7 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                                     currentIndex: newIndex,
                                     completedCount: session.boardState.completedCount + 1,
                                     currentGuess: [],
-                                    availableLetters: nextItem.original.toUpperCase().split('').map((c, i) => ({char: c, id: i}))
+                                    availableLetters: nextItem.original.toUpperCase().split('').map((c: string, i: number) => ({char: c, id: i}))
                                 });
                             } else {
                                 updateSessionState(sessionId, { status: 'finished' });
