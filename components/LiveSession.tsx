@@ -39,8 +39,13 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 }) => {
   const [session, setSession] = useState<LiveSessionState | null>(null);
   const [playerName, setPlayerName] = useState('');
-  // Force join screen for everyone except the original creator of the lobby
-  const [hasJoined, setHasJoined] = useState(isHost); 
+  
+  // Robust check for joined state
+  // Host is always considered "joined"
+  // Students are only joined if they have completed the registration
+  const [studentJoined, setStudentJoined] = useState(false);
+  const hasJoined = isHost || studentJoined;
+
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +71,7 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
     try {
       const pid = await joinSession(sessionId, playerName);
       setPlayerId(pid);
-      setHasJoined(true);
+      setStudentJoined(true);
     } catch (err) {
       console.error(err);
       setError("Failed to join session");
