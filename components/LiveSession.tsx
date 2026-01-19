@@ -10,6 +10,8 @@ import {
 import { Button } from './Button';
 import { Loader2, Users, Play, Trophy, ArrowRight, Copy, CheckCircle, XCircle } from 'lucide-react';
 import { QuizGame } from './games/QuizGame';
+import { WordSearchGame } from './games/WordSearchGame';
+import { GameType } from '../types';
 
 interface LiveSessionProps {
   sessionId: string;
@@ -203,6 +205,24 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   
   const gameData = session.gameData as any; // We know it's stored here
   const currentQ = gameData.quizContent?.[session.currentQuestionIndex];
+
+  // Handle Non-Quiz games (like Word Search) that are played individually
+  if (session.status === 'active' && gameData.type === GameType.WORD_SEARCH) {
+     return (
+       <div className="max-w-4xl mx-auto">
+         {isHost && (
+           <div className="bg-yellow-50 p-4 rounded-xl mb-4 border border-yellow-200 text-yellow-800 text-center">
+             <p className="font-bold">Host View</p>
+             <p className="text-sm">Students are playing the Word Search on their devices independently.</p>
+             <Button onClick={async () => await updateSessionState(sessionId, { status: 'finished' })} className="mt-2">
+               End Game
+             </Button>
+           </div>
+         )}
+         <WordSearchGame data={gameData} onReset={() => {}} />
+       </div>
+     );
+  }
 
   if (session.status === 'active' && currentQ) {
     return (
