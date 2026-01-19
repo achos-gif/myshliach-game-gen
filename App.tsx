@@ -29,10 +29,33 @@ const App: React.FC = () => {
     checkKeyStatus();
   }, []);
 
+import { getGameFromDatabase } from './services/firebaseService';
+
+// ...existing code...
   // Handle shared games from URL
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleHashChange = async () => {
       const hash = window.location.hash;
+      
+      // Handle Firebase Short Links (#id=...)
+      if (hash.startsWith('#id=')) {
+        const gameId = hash.replace('#id=', '');
+        setState(prev => ({ ...prev, view: 'LOADING' }));
+        try {
+          const data = await getGameFromDatabase(gameId);
+          if (data) {
+            setState({ view: 'GAME', data });
+          } else {
+            setState(prev => ({ ...prev, view: 'MENU', error: "Game not found or expired." }));
+          }
+        } catch (e) {
+          console.error("Database load error:", e);
+          setState(prev => ({ ...prev, view: 'MENU', error: "Failed to load shared game." }));
+        }
+        return;
+      }
+
+      // Handle Legacy Links (#game=...)
       if (hash.startsWith('#game=')) {
         try {
           const encoded = hash.replace('#game=', '');
@@ -194,7 +217,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="text-center text-gray-400 text-sm py-8 print:hidden">
-        <p>&copy; {new Date().getFullYear()} MyShliach Mentor Program • v{APP_VERSION}</p>
+        <p>&copy; {new Date().getFullYear()} MyShliach Mentor Program</p>
       </footer>
     </div>
   );

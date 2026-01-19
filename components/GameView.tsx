@@ -13,9 +13,10 @@ import { CrosswordGame } from './games/CrosswordGame';
 import { EmojiGame } from './games/EmojiGame';
 import { TriviaTrailGame } from './games/TriviaTrailGame';
 import { FindMatchGame } from './games/FindMatchGame';
-import { Share2, User, CopyCheck, ArrowLeft, Printer } from 'lucide-react';
+import { Share2, User, CopyCheck, ArrowLeft, Printer, Loader2 } from 'lucide-react';
 import { Button } from './Button';
 import LZString from 'lz-string';
+import { saveGameToDatabase } from '../services/firebaseService';
 
 interface GameViewProps {
   data: GameData;
@@ -24,26 +25,39 @@ interface GameViewProps {
 
 export const GameView: React.FC<GameViewProps> = ({ data, onReset }) => {
   const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleShare = async () => {
+    setIsSharing(true);
     try {
-      const jsonString = JSON.stringify(data);
-      // Use lz-string to compress the JSON data for a shorter URL
-      console.log("Compressing game data for share link...");
-      const compressed = LZString.compressToEncodedURIComponent(jsonString);
-      const url = `${window.location.origin}${window.location.pathname}#game=${compressed}`;
-      
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } else {
-        // Fallback for non-secure contexts or if clipboard API fails
-        prompt("Copy this link to share:", url);
+      // Attempt to save to Firebase first for a short link
+      try {
+        const shortId = await saveGameToDatabase(data);
+        const url = `${window.location.origin}${window.location.pathname}#id=${shortId}`;
+        copyToClipboard(url);
+      } catch (dbError) {
+        console.warn("Database save failed, falling back to compressed URL", dbError);
+        // Fallback to LZString if database fails (e.g. not configured)
+        const jsonString = JSON.stringify(data);
+        const compressed = LZString.compressToEncodedURIComponent(jsonString);
+        const url = `${window.location.origin}${window.location.pathname}#game=${compressed}`;
+        copyToClipboard(url);
       }
     } catch (e) {
       console.error("Failed to share", e);
-      alert("Could not generate share link. Game content might be too large.");
+      alert("Could not generate share link.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      prompt("Copy this link to share:", url);
     }
   };
 
@@ -119,9 +133,9 @@ export const GameView: React.FC<GameViewProps> = ({ data, onReset }) => {
              <Printer size={20} />
              <span className="ml-2 hidden lg:inline">Print</span>
           </Button>
-          <Button onClick={handleShare} variant="secondary">
-            {copied ? <CopyCheck size={20} /> : <Share2 size={20} />}
-            {copied ? "Link Copied" : "Share"}
+          <Button onClick={handleShare} disabled={isSharing}>
+            {isSharing ? <Loader2 size={20} className="animate-spin" /> : (copied ? <CopyCheck size={20} /> : <Share2 size={20} />)}
+            {isSharing ? 'Saving...' : (copied ? 'Copied!' : 'Share Game')}
           </Button>
         </div>
       </div>
