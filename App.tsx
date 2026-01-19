@@ -8,6 +8,7 @@ import { Loader2, AlertCircle, Key, ExternalLink } from 'lucide-react';
 import { APP_TITLE, APP_VERSION } from './constants';
 import { Button } from './components/Button';
 import LZString from 'lz-string';
+import { getGameFromDatabase } from './services/firebaseService';
 
 const App: React.FC = () => {
   const [state, setState] = useState<GameState>({
@@ -29,9 +30,6 @@ const App: React.FC = () => {
     checkKeyStatus();
   }, []);
 
-import { getGameFromDatabase } from './services/firebaseService';
-
-// ...existing code...
   // Handle shared games from URL
   useEffect(() => {
     const handleHashChange = async () => {
