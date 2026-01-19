@@ -37,7 +37,15 @@ export const CrosswordGame: React.FC<CrosswordGameProps> = ({
   const [dimensions, setDimensions] = useState({ rows: 10, cols: 10 });
 
   // Use external inputs if provided, otherwise local
-  const userInputs = externalInputs || localInputs;
+  // Merging logic: prefer external (server) state, fallback to local pending edits
+  const userInputs = externalInputs && Object.keys(externalInputs).length > 0 ? externalInputs : localInputs;
+
+  // Ensure we keep local inputs in sync with external if external updates
+  useEffect(() => {
+    if (externalInputs) {
+      setLocalInputs(prev => ({ ...prev, ...externalInputs }));
+    }
+  }, [externalInputs]);
 
   useEffect(() => {
     if (data.crosswordContent) {

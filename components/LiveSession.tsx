@@ -42,10 +42,10 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   const [playerName, setPlayerName] = useState('');
   
   // Robust check for joined state
-  // Host is always considered "joined"
-  // Students are only joined if they have completed the registration
   const [studentJoined, setStudentJoined] = useState(false);
-  const hasJoined = isHost || studentJoined;
+  // Ensure we rely strictly on our local state to determine if we are the host or a joined student
+  // We double check 'isHost' prop, but for the student flow 'studentJoined' must be true.
+  const hasJoined = isHost ? true : studentJoined;
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
