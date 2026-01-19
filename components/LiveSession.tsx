@@ -290,12 +290,24 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                 if (!isHost && !session.boardState?.grid) {
                    return <div className="text-center p-8 text-indigo-600 animate-pulse">Waiting for host to start game...</div>;
                 }
+                
+                // Firestore doesn't support nested arrays, so we likely stored it as a JSON string
+                let gridToUse = session.boardState?.grid;
+                if (typeof gridToUse === 'string') {
+                    try {
+                        gridToUse = JSON.parse(gridToUse);
+                    } catch (e) {
+                        console.error("Failed to parse grid", e);
+                        gridToUse = []; 
+                    }
+                }
+
                 return <WordSearchGame 
                     data={gameData}
                     onReset={() => {}}
-                    externalGrid={session.boardState?.grid}
+                    externalGrid={gridToUse}
                     externalFoundWords={session.boardState?.foundWords}
-                    onGridGenerated={(grid) => handleBoardUpdate({ grid })}
+                    onGridGenerated={(grid) => handleBoardUpdate({ grid: JSON.stringify(grid) })}
                     onWordFound={(word) => {
                         const currentFound = session.boardState?.foundWords || [];
                         if (!currentFound.includes(word)) {

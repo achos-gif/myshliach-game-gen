@@ -108,7 +108,8 @@ export const createLiveSession = async (gameData: GameData, hostName: string): P
     players: {},
     createdAt: new Date().toISOString(),
     sharedAnswer: null,
-    answerFeedback: null
+    answerFeedback: null,
+    boardState: {} // Initialize to avoid undefined issues
   }));
 
   return sessionId;
