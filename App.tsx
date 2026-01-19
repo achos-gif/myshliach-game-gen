@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameData, GameState, GameType, GameGenerationInput } from './types';
 import { generateGameFromContent } from './services/geminiService';
@@ -8,6 +7,7 @@ import { GameMenu } from './components/GameMenu';
 import { Loader2, AlertCircle, Key, ExternalLink } from 'lucide-react';
 import { APP_TITLE } from './constants';
 import { Button } from './components/Button';
+import LZString from 'lz-string';
 
 const App: React.FC = () => {
   const [state, setState] = useState<GameState>({
@@ -36,7 +36,15 @@ const App: React.FC = () => {
       if (hash.startsWith('#game=')) {
         try {
           const encoded = hash.replace('#game=', '');
-          const jsonString = decodeURIComponent(atob(encoded));
+          
+          // Try decompressing first (new format)
+          let jsonString = LZString.decompressFromEncodedURIComponent(encoded);
+          
+          // Fallback to old format (base64) if decompression returns null or fails
+          if (!jsonString) {
+             jsonString = decodeURIComponent(atob(encoded));
+          }
+          
           const data = JSON.parse(jsonString) as GameData;
           setState({ view: 'GAME', data });
         } catch (e) {
