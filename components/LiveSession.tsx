@@ -11,6 +11,17 @@ import { Button } from './Button';
 import { Loader2, Users, Play, Trophy, ArrowRight, Copy, CheckCircle, XCircle } from 'lucide-react';
 import { QuizGame } from './games/QuizGame';
 import { WordSearchGame } from './games/WordSearchGame';
+import { MatchingGame } from './games/MatchingGame';
+import { MemoryGame } from './games/MemoryGame';
+import { SequenceGame } from './games/SequenceGame';
+import { SortingGame } from './games/SortingGame';
+import { UnscrambleGame } from './games/UnscrambleGame';
+import { FillBlankGame } from './games/FillBlankGame';
+import { RiddleGame } from './games/RiddleGame';
+import { CrosswordGame } from './games/CrosswordGame';
+import { EmojiGame } from './games/EmojiGame';
+import { TriviaTrailGame } from './games/TriviaTrailGame';
+import { FindMatchGame } from './games/FindMatchGame';
 import { GameType } from '../types';
 
 interface LiveSessionProps {
@@ -210,20 +221,57 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   const gameData = session.gameData as any; // We know it's stored here
   const currentQ = gameData.quizContent?.[session.currentQuestionIndex];
 
-  // Handle Non-Quiz games (like Word Search) that are played individually
-  if (session.status === 'active' && gameData.type === GameType.WORD_SEARCH) {
+  // Handle Games played independently (Board Games)
+  // For these games, we show the game component directly.
+  // The host sees a control panel to end the game.
+  const independentGames = [
+    GameType.WORD_SEARCH,
+    GameType.MATCHING,
+    GameType.MEMORY,
+    GameType.SEQUENCE,
+    GameType.SORTING,
+    GameType.UNSCRAMBLE,
+    GameType.FILL_IN_BLANK,
+    GameType.RIDDLE,
+    GameType.CROSSWORD,
+    GameType.EMOJI_CHALLENGE,
+    GameType.TRIVIA_TRAIL,
+    GameType.FIND_MATCH
+  ];
+
+  if (session.status === 'active' && independentGames.includes(gameData.type)) {
+     const renderIndependentGame = () => {
+        switch (gameData.type) {
+            case GameType.WORD_SEARCH: return <WordSearchGame data={gameData} onReset={() => {}} />;
+            case GameType.MATCHING: return <MatchingGame data={gameData} onReset={() => {}} />;
+            case GameType.MEMORY: return <MemoryGame data={gameData} onReset={() => {}} />;
+            case GameType.SEQUENCE: return <SequenceGame data={gameData} onReset={() => {}} />;
+            case GameType.SORTING: return <SortingGame data={gameData} onReset={() => {}} />;
+            case GameType.UNSCRAMBLE: return <UnscrambleGame data={gameData} onReset={() => {}} />;
+            case GameType.FILL_IN_BLANK: return <FillBlankGame data={gameData} onReset={() => {}} />;
+            case GameType.RIDDLE: return <RiddleGame data={gameData} onReset={() => {}} />;
+            case GameType.CROSSWORD: return <CrosswordGame data={gameData} onReset={() => {}} />;
+            case GameType.EMOJI_CHALLENGE: return <EmojiGame data={gameData} onReset={() => {}} />;
+            case GameType.TRIVIA_TRAIL: return <TriviaTrailGame data={gameData} onReset={() => {}} />;
+            case GameType.FIND_MATCH: return <FindMatchGame data={gameData} onReset={() => {}} />;
+            default: return <div>Game not supported in Live Mode yet.</div>;
+        }
+     };
+
      return (
-       <div className="max-w-4xl mx-auto">
+       <div className="max-w-6xl mx-auto">
          {isHost && (
-           <div className="bg-yellow-50 p-4 rounded-xl mb-4 border border-yellow-200 text-yellow-800 text-center">
-             <p className="font-bold">Host View</p>
-             <p className="text-sm">Students are playing the Word Search on their devices independently.</p>
-             <Button onClick={async () => await updateSessionState(sessionId, { status: 'finished' })} className="mt-2">
-               End Game
+           <div className="bg-yellow-50 p-4 rounded-xl mb-4 border border-yellow-200 text-yellow-800 text-center sticky top-4 z-50 shadow-md mx-4">
+             <p className="font-bold text-lg">Host Control Panel</p>
+             <p className="text-sm mb-2">Students are playing independently on their devices.</p>
+             <Button onClick={async () => await updateSessionState(sessionId, { status: 'finished' })} className="mt-1">
+               End Session
              </Button>
            </div>
          )}
-         <WordSearchGame data={gameData} onReset={() => {}} />
+         <div className="pointer-events-auto">
+            {renderIndependentGame()}
+         </div>
        </div>
      );
   }
