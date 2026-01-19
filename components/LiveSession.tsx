@@ -231,7 +231,6 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
   // Handle Games played independently (Board Games)
   // For these games, we show the game component directly.
   const independentGames = [
-    GameType.WORD_SEARCH,
     GameType.MATCHING,
     GameType.MEMORY,
     GameType.SEQUENCE,
@@ -247,7 +246,9 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
   // Cooperative games that are NOT question-based (like Crossword, Unscramble)
   if (session.status === 'active' && 
-      (gameData.type === GameType.CROSSWORD || gameData.type === GameType.UNSCRAMBLE)) {
+      (gameData.type === GameType.CROSSWORD || 
+       gameData.type === GameType.UNSCRAMBLE || 
+       gameData.type === GameType.WORD_SEARCH)) {
      const handleBoardUpdate = (updates: any) => {
         updateBoardState(sessionId, updates);
      };
@@ -268,6 +269,23 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                 externalState={session.boardState as any || { currentIndex: 0, completedCount: 0, currentGuess: [], availableLetters: [] }}
                 onStateChange={handleBoardUpdate}
               />;
+            case GameType.WORD_SEARCH:
+                if (!isHost && !session.boardState?.grid) {
+                   return <div className="text-center p-8 text-indigo-600 animate-pulse">Waiting for host to start game...</div>;
+                }
+                return <WordSearchGame 
+                    data={gameData}
+                    onReset={() => {}}
+                    externalGrid={session.boardState?.grid}
+                    externalFoundWords={session.boardState?.foundWords}
+                    onGridGenerated={(grid) => handleBoardUpdate({ grid })}
+                    onWordFound={(word) => {
+                        const currentFound = session.boardState?.foundWords || [];
+                        if (!currentFound.includes(word)) {
+                            handleBoardUpdate({ foundWords: [...currentFound, word] });
+                        }
+                    }}
+                />;
             default: return <div>Game not supported in Live Mode yet.</div>;
         }
      };

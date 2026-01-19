@@ -7,11 +7,22 @@ import { CheckCircle, RotateCcw } from 'lucide-react';
 interface WordSearchGameProps {
   data: GameData;
   onReset: () => void;
+  externalGrid?: string[][];
+  externalFoundWords?: string[];
+  onGridGenerated?: (grid: string[][]) => void;
+  onWordFound?: (word: string) => void;
 }
 
 const GRID_SIZE = 12;
 
-export const WordSearchGame: React.FC<WordSearchGameProps> = ({ data, onReset }) => {
+export const WordSearchGame: React.FC<WordSearchGameProps> = ({ 
+  data, 
+  onReset,
+  externalGrid,
+  externalFoundWords,
+  onGridGenerated,
+  onWordFound
+}) => {
   const [grid, setGrid] = useState<string[][]>([]);
   const [words, setWords] = useState<{ word: string; found: boolean }[]>([]);
   const [selection, setSelection] = useState<{ r: number; c: number }[]>([]);
@@ -20,11 +31,32 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({ data, onReset })
 
   useEffect(() => {
     if (data.wordSearchContent) {
-      const wordList = data.wordSearchContent.map(w => ({ word: w.toUpperCase(), found: false }));
+      const wordList = data.wordSearchContent.map(w => ({ 
+        word: w.toUpperCase(), 
+        found: externalFoundWords ? externalFoundWords.includes(w.toUpperCase()) : false 
+      }));
       setWords(wordList);
-      setGrid(generateGrid(wordList.map(w => w.word)));
+
+      if (externalGrid) {
+        setGrid(externalGrid);
+      } else {
+        const newGrid = generateGrid(wordList.map(w => w.word));
+        setGrid(newGrid);
+        if (onGridGenerated) {
+          onGridGenerated(newGrid);
+        }
+      }
     }
-  }, [data]);
+  }, [data, externalGrid]);
+
+  useEffect(() => {
+    if (externalFoundWords) {
+      setWords(prev => prev.map(w => ({
+        ...w,
+        found: externalFoundWords.includes(w.word)
+      })));
+    }
+  }, [externalFoundWords]);
 
   const generateGrid = (wordList: string[]): string[][] => {
     const newGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(''));
@@ -119,6 +151,9 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({ data, onReset })
       const newWords = [...words];
       newWords[foundIdx].found = true;
       setWords(newWords);
+      if (onWordFound) {
+        onWordFound(words[foundIdx].word);
+      }
     }
   };
 
